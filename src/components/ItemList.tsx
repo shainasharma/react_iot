@@ -71,20 +71,41 @@ const ItemList = () => {
         }
     };
 
-    const handleSave = (item: Item) => {
-        if (item.id) {
-            setAllItems(allItems.map((existingItem) => (existingItem.id === item.id ? item : existingItem)));
-            showMessage("Item updated successfully!", "success");
-        } else {
-            const newItem = { ...item, id: Date.now() };
-            setAllItems([newItem, ...allItems]);
-            setUserIds(Array.from(new Set([...userIds, newItem.userId])));
-            showMessage("Item added successfully!", "success");
-        }
-        setEditingItem(null);
-        setIsAdding(false);
-    };
+    const handleSave = async (item: Partial<Item>) => {
+        try {
+            let savedItem: Item;
 
+            if (item.id) {
+                const response = await fetch(`https://jsonplaceholder.typicode.com/posts/${item.id}`, {
+                    method: "PUT",
+                    body: JSON.stringify(item),
+                    headers: { "Content-type": "application/json; charset=UTF-8" },
+                });
+                if (!response.ok) throw new Error(`Failed to update item. Status: ${response.status}`);
+                savedItem = await response.json();
+                setAllItems(allItems.map((existingItem) => (existingItem.id === savedItem.id ? savedItem : existingItem)));
+                showMessage("✅ Item updated successfully!", "success");
+            } else {
+                const response = await fetch("https://jsonplaceholder.typicode.com/posts", {
+                    method: "POST",
+                    body: JSON.stringify(item),
+                    headers: { "Content-type": "application/json; charset=UTF-8" },
+                });
+                if (!response.ok) throw new Error(`Failed to add item. Status: ${response.status}`);
+                savedItem = await response.json();
+                setAllItems([savedItem, ...allItems]);
+                setUserIds(Array.from(new Set([...userIds, savedItem.userId])));
+                showMessage("Item added successfully!", "success");
+            }
+
+            setEditingItem(null);
+            setIsAdding(false);
+        } catch (error) {
+            console.error("Error saving item:", error);
+            showMessage("Failed to save item. Please try again.", "error");
+        }
+    };   
+    
     const toggleExpand = (id: number) => {
         setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
     };

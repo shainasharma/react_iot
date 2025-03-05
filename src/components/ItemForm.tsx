@@ -3,7 +3,7 @@ import { Item } from "../types";
 
 interface ItemFormProps {
     initialData?: Item;
-    onSave: (item: Item) => void;
+    onSave: (item: Omit<Item, "id"> | Item) => void; // Allow adding without an ID
     onClose: () => void;
 }
 
@@ -16,14 +16,25 @@ const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSave, onClose }) => 
     const handleUserIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setUserId(value);
-        setUserIdError(Number(value) < 1 ? "❌ User ID must be 1 or greater." : "");
+        setUserIdError(Number(value) < 1 ? "User ID must be 1 or greater." : "");
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim() || !userId.trim() || Number(userId) < 1) return;
 
-        onSave({ id: initialData?.id ?? Date.now(), title, body, userId: Number(userId) });
+        const newItem = {
+            title,
+            body,
+            userId: Number(userId),
+        };
+
+        if (initialData?.id) {
+            onSave({ id: initialData.id, ...newItem }); // Editing (ID exists)
+        } else {
+            onSave(newItem); // Adding (API will assign an ID)
+        }
+
         onClose();
     };
 
